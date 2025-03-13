@@ -59,7 +59,7 @@ jobs:
 
       - name: Publishing to GitHub Releases
         uses: svenstaro/upload-release-action@v2
-        if: github.event_name == 'release'
+        if: github.event_name != 'release'
         with:
           repo_token: ${{ github.token }}
           file: .github/${{ env.ASSET_NAME }}
