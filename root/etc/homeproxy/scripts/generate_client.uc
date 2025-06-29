@@ -380,7 +380,7 @@ config.log = {
 
 /* NTP */
 config.ntp = {
-	enabled: true,
+	enabled: false,
 	server: ntp_server,
 	detour: 'direct-out',
 	/* TODO: disable this until we have sing-box 1.12 */
