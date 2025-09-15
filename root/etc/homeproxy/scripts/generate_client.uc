@@ -408,7 +408,7 @@ config.log = {
 
 /* NTP */
 config.ntp = {
-	enabled: true,
+	enabled: false,
 	server: ntp_server,
 	detour: 'direct-out',
 	domain_resolver: 'default-dns',
