@@ -805,12 +805,12 @@ config.route = {
 /* Routing rules */
 if (!isEmpty(main_node)) {
 	/* Avoid DNS loop */
-	config.route.default_domain_resolver = {
+/*	config.route.default_domain_resolver = {
 		action: 'route',
 		server: 'default-dns',
 		strategy: (ipv6_support !== '1') ? 'prefer_ipv4' : null
 	};
-
+*/
 	/* Direct list */
 	if (length(direct_domain_list))
 		push(config.route.rules, {
@@ -881,10 +881,11 @@ if (!isEmpty(main_node)) {
 	if (isEmpty(config.route.rule_set))
 		config.route.rule_set = null;
 } else if (!isEmpty(default_outbound)) {
+/* Direct list
 	config.route.default_domain_resolver = {
 		action: 'resolve',
 		server: get_resolver(default_outbound_dns)
-	};
+	}; */
 
 	if (domain_strategy)
 		push(config.route.rules, {
