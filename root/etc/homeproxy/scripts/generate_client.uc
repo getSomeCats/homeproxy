@@ -408,7 +408,7 @@ config.log = {
 
 /* NTP */
 config.ntp = {
-	enabled: true,
+	enabled: false,
 	server: ntp_server,
 	detour: 'direct-out',
 	domain_resolver: 'default-dns',
@@ -515,6 +515,9 @@ if (!isEmpty(main_node)) {
 
 		let outbound = get_outbound(cfg.outbound);
 		if (outbound === 'direct-out' && isEmpty(self_mark))
+			outbound = null;
+		// 新增逻辑：dns名称是 TencentDNS 时，强制 outbound = null
+		if (cfg.server === 'doh.pub') 
 			outbound = null;
 
 		push(config.dns.servers, {
