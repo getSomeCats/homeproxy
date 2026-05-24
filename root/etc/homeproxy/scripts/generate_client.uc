@@ -649,10 +649,6 @@ config.outbounds = [
 		type: 'direct',
 		tag: 'direct-out',
 		routing_mark: strToInt(self_mark)
-	},
-	{
-		type: 'block',
-		tag: 'block-out'
 	}
 ];
 
@@ -914,8 +910,8 @@ if (!isEmpty(main_node)) {
 			rule_set_ip_cidr_match_source: strToBool(cfg.rule_set_ip_cidr_match_source),
 			rule_set_ip_cidr_accept_empty: strToBool(cfg.rule_set_ip_cidr_accept_empty),
 			invert: strToBool(cfg.invert),
-			action: cfg.action,
-			outbound: get_outbound(cfg.outbound),
+			action: (cfg.outbound === 'block-out') ? 'reject' : cfg.action,
+			outbound: (cfg.outbound === 'block-out') ? null : get_outbound(cfg.outbound),
 			override_address: cfg.override_address,
 			override_port: strToInt(cfg.override_port),
 			udp_disable_domain_unmapping: strToBool(cfg.udp_disable_domain_unmapping),
@@ -927,7 +923,14 @@ if (!isEmpty(main_node)) {
 		});
 	});
 
-	config.route.final = get_outbound(default_outbound);
+	if (default_outbound === 'block-out') {
+		push(config.route.rules, {
+			action: 'reject'
+		});
+		config.route.final = null;
+	} else {
+		config.route.final = get_outbound(default_outbound);
+	}
 
 	/* Rule set */
 	uci.foreach(uciconfig, uciruleset, (cfg) => {
