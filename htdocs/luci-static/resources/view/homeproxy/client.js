@@ -298,6 +298,20 @@ return view.extend({
 		o.default = o.enabled;
 		o.rmempty = false;
 
+		o = s.taboption('routing', form.Flag, 'auto_route', _('Auto route'),
+			_('Let sing-box automatically manage routing tables and TUN interface.'));
+		o.default = o.disabled;
+		o.depends('proxy_mode', 'redirect_tun');
+		o.depends('proxy_mode', 'tun');
+		o.rmempty = false;
+
+		o = s.taboption('routing', form.Flag, 'auto_redirect', _('Auto redirect'),
+			_('Let sing-box automatically manage transparent proxy firewall rules (requires Auto route).'));
+		o.default = o.disabled;
+		o.depends({'proxy_mode': 'redirect_tun', 'auto_route': '1'});
+		o.depends({'proxy_mode': 'tun', 'auto_route': '1'});
+		o.rmempty = false;
+
 		o = s.taboption('routing', form.Value, 'ntp_server', _('NTP server'),
 			_('NTP server address for time synchronization. Set to "nil" to disable NTP.'));
 		o.value('nil', _('Disable'));
@@ -685,6 +699,7 @@ return view.extend({
 		so.value('route-options', _('Route options'));
 		so.value('reject', _('Reject'));
 		so.value('resolve', _('Resolve'));
+		so.value('bypass', _('Bypass'));
 		so.default = 'route';
 		so.rmempty = false;
 		so.editable = true;
