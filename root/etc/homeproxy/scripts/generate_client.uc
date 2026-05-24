@@ -411,7 +411,6 @@ if (!isEmpty(ntp_server))
 	config.ntp = {
 		enabled: true,
 		server: ntp_server,
-		detour: 'direct-out',
 		domain_resolver: 'default-dns',
 	};
 
