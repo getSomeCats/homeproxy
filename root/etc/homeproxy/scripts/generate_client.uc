@@ -50,7 +50,7 @@ if (!wan_dns)
 
 const dns_port = uci.get(uciconfig, uciinfra, 'dns_port') || '5333';
 
-const ntp_server = uci.get(uciconfig, uciinfra, 'ntp_server') || 'time.apple.com';
+const ntp_server = uci.get(uciconfig, ucimain, 'ntp_server') || uci.get(uciconfig, uciinfra, 'ntp_server') || 'time.apple.com';
 
 const ipv6_support = uci.get(uciconfig, ucimain, 'ipv6_support') || '0';
 
@@ -803,7 +803,6 @@ if (strToBool(sniff_override)) {
 if (!isEmpty(main_node)) {
 	/* Avoid DNS loop */
 	config.route.default_domain_resolver = {
-		action: 'route',
 		server: (routing_mode === 'bypass_mainland_china') ? 'china-dns' : 'default-dns',
 		strategy: (ipv6_support !== '1') ? 'prefer_ipv4' : null
 	};
@@ -879,7 +878,6 @@ if (!isEmpty(main_node)) {
 		config.route.rule_set = null;
 } else if (!isEmpty(default_outbound)) {
 	config.route.default_domain_resolver = {
-		action: 'resolve',
 		server: get_resolver(default_outbound_dns)
 	};
 

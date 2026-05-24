@@ -298,6 +298,20 @@ return view.extend({
 		o.default = o.enabled;
 		o.rmempty = false;
 
+		o = s.taboption('routing', form.Value, 'ntp_server', _('NTP server'),
+			_('NTP server address for time synchronization. Set to "nil" to disable NTP.'));
+		o.value('nil', _('Disable'));
+		o.value('time.apple.com', 'Apple (time.apple.com)');
+		o.value('ntp.aliyun.com', 'Aliyun (ntp.aliyun.com)');
+		o.value('ntp.tencent.com', 'Tencent (ntp.tencent.com)');
+		o.value('cn.pool.ntp.org', 'NTP Pool (cn.pool.ntp.org)');
+		o.default = 'time.apple.com';
+		o.load = function(section_id) {
+			let val = uci.get('homeproxy', section_id, 'ntp_server') || uci.get('homeproxy', 'infra', 'ntp_server');
+			return val || this.default;
+		};
+		o.rmempty = false;
+
 		/* Custom routing settings start */
 		/* Routing settings start */
 		o = s.taboption('routing', form.SectionValue, '_routing', form.NamedSection, 'routing', 'homeproxy');
