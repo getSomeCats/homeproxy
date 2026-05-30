@@ -53,8 +53,6 @@ const dns_port = uci.get(uciconfig, uciinfra, 'dns_port') || '5333';
 const ntp_server = uci.get(uciconfig, ucimain, 'ntp_server') || uci.get(uciconfig, uciinfra, 'ntp_server') || 'time.apple.com';
 
 const ipv6_support = uci.get(uciconfig, ucimain, 'ipv6_support') || '0';
-const auto_route = uci.get(uciconfig, ucimain, 'auto_route') === '1';
-const auto_redirect = uci.get(uciconfig, ucimain, 'auto_redirect') === '1';
 
 let main_node, main_udp_node, dedicated_udp_node, default_outbound, default_outbound_dns,
     domain_strategy, sniff_override, dns_server, china_dns_server, dns_default_strategy,
@@ -635,9 +633,6 @@ if (match(proxy_mode, /tun/))
 		interface_name: tun_name,
 		address: (ipv6_support === '1') ? [tun_addr4, tun_addr6] : [tun_addr4],
 		mtu: strToInt(tun_mtu),
-		auto_route: auto_route,
-		strict_route: auto_route ? true : null,
-		auto_redirect: (auto_route && auto_redirect) ? true : null,
 		endpoint_independent_nat: strToBool(endpoint_independent_nat),
 		udp_timeout: strToTime(udp_timeout),
 		stack: tcpip_stack
