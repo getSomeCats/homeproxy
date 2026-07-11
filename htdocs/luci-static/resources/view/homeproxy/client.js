@@ -88,17 +88,9 @@ let convertMACRemarks = function(so) {
 			let label = so.vallist[i];
 			if (!label) continue;
 
-			let labelStr = '';
-			if (typeof label === 'string') {
-				labelStr = label;
-			} else if (label.nodeType) {
-				labelStr = label.textContent || label.innerText || '';
-			} else {
-				labelStr = String(label);
-			}
-
+			let labelStr = label.textContent || String(label);
 			let m = labelStr.match(/^([0-9a-fA-F:]+)\s*\((.+)\)$/i);
-			if (m && m[2] && m[2] !== '?') {
+			if (m && m[2] !== '?') {
 				so.keylist[i] = m[1] + '#' + m[2].replace(/\s+/g, '_');
 			}
 		}
