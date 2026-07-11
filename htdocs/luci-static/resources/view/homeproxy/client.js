@@ -74,7 +74,7 @@ let stubValidator = {
 
 let validateMACWithRemark = function(section_id, value) {
 	if (!value) return true;
-	let mac = value.trim().split(/\s+/)[0];
+	let mac = value.split('#')[0].trim();
 	if (!stubValidator.apply('macaddr', mac))
 		return _('Expecting: %s').format(_('valid MAC address'));
 	return true;
@@ -99,7 +99,7 @@ let convertMACRemarks = function(so) {
 
 			let m = labelStr.match(/^([0-9a-fA-F:]+)\s*\((.+)\)$/i);
 			if (m && m[2] && m[2] !== '?') {
-				so.keylist[i] = m[1] + ' ' + m[2];
+				so.keylist[i] = m[1] + '#' + m[2].replace(/\s+/g, '_');
 			}
 		}
 	}
