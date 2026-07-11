@@ -72,6 +72,14 @@ let stubValidator = {
 	}
 };
 
+let validateMACWithRemark = function(section_id, value) {
+	if (!value) return true;
+	let mac = value.split(' ')[0];
+	if (!stubValidator.apply('macaddr', mac))
+		return _('Expecting: %s').format(_('valid MAC address'));
+	return true;
+};
+
 return view.extend({
 	load() {
 		return Promise.all([
@@ -1459,6 +1467,8 @@ return view.extend({
 		so.depends({'lan_proxy_mode': 'except_listed', 'homeproxy.config.ipv6_support': '1'});
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_direct_mac_addrs', _('Direct MAC-s'), null, hosts);
+		so.datatype = 'string';
+		so.validate = validateMACWithRemark;
 		so.depends('lan_proxy_mode', 'except_listed');
 
 		so = fwtool.addIPOption(ss, 'lan_ip_policy', 'lan_proxy_ipv4_ips', _('Proxy IPv4 IP-s'), null, 'ipv4', hosts, true);
@@ -1468,6 +1478,8 @@ return view.extend({
 		so.depends({'lan_proxy_mode': 'listed_only', 'homeproxy.config.ipv6_support': '1'});
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_proxy_mac_addrs', _('Proxy MAC-s'), null, hosts);
+		so.datatype = 'string';
+		so.validate = validateMACWithRemark;
 		so.depends('lan_proxy_mode', 'listed_only');
 
 		so = fwtool.addIPOption(ss, 'lan_ip_policy', 'lan_gaming_mode_ipv4_ips', _('Gaming mode IPv4 IP-s'), null, 'ipv4', hosts, true);
@@ -1476,6 +1488,8 @@ return view.extend({
 		so.depends('homeproxy.config.ipv6_support', '1');
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_gaming_mode_mac_addrs', _('Gaming mode MAC-s'), null, hosts);
+		so.datatype = 'string';
+		so.validate = validateMACWithRemark;
 
 		so = fwtool.addIPOption(ss, 'lan_ip_policy', 'lan_global_proxy_ipv4_ips', _('Global proxy IPv4 IP-s'), null, 'ipv4', hosts, true);
 		so.depends({'homeproxy.config.routing_mode': 'custom', '!reverse': true});
@@ -1484,6 +1498,8 @@ return view.extend({
 		so.depends({'homeproxy.config.routing_mode': /^((?!custom).)+$/, 'homeproxy.config.ipv6_support': '1'});
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_global_proxy_mac_addrs', _('Global proxy MAC-s'), null, hosts);
+		so.datatype = 'string';
+		so.validate = validateMACWithRemark;
 		so.depends({'homeproxy.config.routing_mode': 'custom', '!reverse': true});
 		/* LAN IP policy end */
 

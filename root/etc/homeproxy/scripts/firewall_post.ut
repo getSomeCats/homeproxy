@@ -11,7 +11,7 @@ function array_to_nftarr(array) {
 	if (type(array) !== 'array')
 		return null;
 
-	return `{ ${join(', ', uniq(array))} }`;
+	return `{ ${join(', ', uniq(map(array, (item) => split(item, ' ')[0])))} }`;
 }
 
 function resolve_ipv6(str) {
