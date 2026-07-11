@@ -180,12 +180,19 @@ return view.extend({
 			_('Support UDP, TCP, DoH, DoQ, DoT. TCP protocol will be used if not specified.'));
 		o.value('wan', _('WAN DNS (read from interface)'));
 		o.value('1.1.1.1', _('CloudFlare Public DNS (1.1.1.1)'));
+		o.value('https://cloudflare-dns.com/dns-query', _('CloudFlare DoH (cloudflare-dns.com)'));
 		o.value('208.67.222.222', _('Cisco Public DNS (208.67.222.222)'));
 		o.value('8.8.8.8', _('Google Public DNS (8.8.8.8)'));
+		o.value('https://dns.google/dns-query', _('Google DoH (dns.google)'));
 		o.value('', '---');
 		o.value('223.5.5.5', _('Aliyun Public DNS (223.5.5.5)'));
+		o.value('https://dns.alidns.com/dns-query', _('Aliyun DoH (dns.alidns.com)'));
 		o.value('119.29.29.29', _('Tencent Public DNS (119.29.29.29)'));
+		o.value('https://doh.pub/dns-query', _('Tencent DoH (doh.pub)'));
 		o.value('117.50.10.10', _('ThreatBook Public DNS (117.50.10.10)'));
+		o.value('', '---');
+		o.value('127.0.0.1:5335', _('MosDNS (127.0.0.1:5335)'));
+		o.value('127.0.0.1:53', _('Dnsmasq (127.0.0.1:53)'));
 		o.default = '8.8.8.8';
 		o.rmempty = false;
 		o.depends({'routing_mode': 'custom', '!reverse': true});
@@ -196,7 +203,7 @@ return view.extend({
 
 				let ipv6_support = this.section.formvalue(section_id, 'ipv6_support');
 				try {
-					let url = new URL(value.replace(/^.*:\/\//, 'http://'));
+					let url = new URL(value.includes('://') ? value.replace(/^.*:\/\//, 'http://') : 'http://' + value);
 					if (stubValidator.apply('hostname', url.hostname))
 						return true;
 					else if (stubValidator.apply('ip4addr', url.hostname))
@@ -218,9 +225,14 @@ return view.extend({
 			_('The dns server for resolving China domains. Support UDP, TCP, DoH, DoQ, DoT.'));
 		o.value('wan', _('WAN DNS (read from interface)'));
 		o.value('223.5.5.5', _('Aliyun Public DNS (223.5.5.5)'));
+		o.value('https://dns.alidns.com/dns-query', _('Aliyun DoH (dns.alidns.com)'));
 		o.value('210.2.4.8', _('CNNIC Public DNS (210.2.4.8)'));
 		o.value('119.29.29.29', _('Tencent Public DNS (119.29.29.29)'));
+		o.value('https://doh.pub/dns-query', _('Tencent DoH (doh.pub)'));
 		o.value('117.50.10.10', _('ThreatBook Public DNS (117.50.10.10)'));
+		o.value('', '---');
+		o.value('127.0.0.1:5335', _('MosDNS (127.0.0.1:5335)'));
+		o.value('127.0.0.1:53', _('Dnsmasq (127.0.0.1:53)'));
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.default = '223.5.5.5';
 		o.rmempty = false;
@@ -230,7 +242,7 @@ return view.extend({
 					return _('Expecting: %s').format(_('non-empty value'));
 
 				try {
-					let url = new URL(value.replace(/^.*:\/\//, 'http://'));
+					let url = new URL(value.includes('://') ? value.replace(/^.*:\/\//, 'http://') : 'http://' + value);
 					if (stubValidator.apply('hostname', url.hostname))
 						return true;
 					else if (stubValidator.apply('ip4addr', url.hostname))
