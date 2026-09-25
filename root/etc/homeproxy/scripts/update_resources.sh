@@ -13,6 +13,7 @@ LOG_PATH="$RUN_DIR/$NAME.log"
 mkdir -p "$RUN_DIR"
 
 log() {
+	[ "$(uci -q get homeproxy.config.homeproxy_log_enabled)" = "0" ] && return 0
 	echo -e "$(date "+%Y-%m-%d %H:%M:%S") $*" >> "$LOG_PATH"
 }
 

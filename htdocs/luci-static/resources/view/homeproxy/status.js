@@ -128,10 +128,11 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 		section = 'server';
 		break;
 	}
+	log_enabled = section ? uci.get('homeproxy', section, 'log_enabled') !== '0' :
+		uci.get('homeproxy', 'config', 'homeproxy_log_enabled') !== '0';
 
 	if (section) {
 		const selected = uci.get('homeproxy', section, 'log_level') || 'warn';
-		log_enabled = uci.get('homeproxy', section, 'log_enabled') !== '0';
 		const choices = {
 			trace: _('Trace'),
 			debug: _('Debug'),
@@ -160,20 +161,23 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 				'selected': (v === selected) ? '' : null
 			}, [ choices[v] ]));
 		});
-
-		log_toggle_el = E('button', {
-			'class': 'btn cbi-button cbi-button-action',
-			'style': 'margin-left: 4px;',
-			'click': ui.createHandlerFn(this, () => {
-				uci.set('homeproxy', section, 'log_enabled', log_enabled ? '0' : '1');
-				return o.map.save(null, true).then(() => {
-					log_enabled = !log_enabled;
-					log_toggle_el.textContent = log_enabled ? _('Disable logging') : _('Enable logging');
-					return ui.changes.apply(true);
-				});
-			})
-		}, [ log_enabled ? _('Disable logging') : _('Enable logging') ]);
 	}
+
+	const log_section = section || 'config';
+	const log_option = section ? 'log_enabled' : 'homeproxy_log_enabled';
+	log_toggle_el = E('button', {
+		'class': 'btn cbi-button cbi-button-action',
+		'style': 'margin-left: 4px;',
+		'click': ui.createHandlerFn(this, () => {
+			uci.set('homeproxy', log_section, log_option, log_enabled ? '0' : '1');
+			return o.map.save(null, true).then(() => {
+				log_enabled = !log_enabled;
+				log_toggle_el.textContent = log_enabled ? _('Disable logging') : _('Enable logging');
+				ui.changes.apply(true);
+				return refreshLog();
+			});
+		})
+	}, [ log_enabled ? _('Disable logging') : _('Enable logging') ]);
 
 	const callLogClean = rpc.declare({
 		object: 'luci.homeproxy',
@@ -182,16 +186,22 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 		expect: { '': {} }
 	});
 
-	const log_textarea = E('div', { 'id': 'log_textarea' },
+	const log_textarea = E('div', { 'id': 'log_textarea' }, log_enabled ?
 		E('img', {
 			'src': L.resource('icons/loading.svg'),
 			'alt': _('Loading'),
 			'style': 'vertical-align:middle'
-		}, _('Collecting data...'))
+		}, _('Collecting data...')) :
+		E('pre', { 'wrap': 'pre' }, _('Logging is disabled.'))
 	);
 
 	let log;
-	poll.add(L.bind(() => {
+	function refreshLog() {
+		if (!log_enabled) {
+			dom.content(log_textarea, E('pre', { 'wrap': 'pre' }, _('Logging is disabled.')));
+			return Promise.resolve();
+		}
+
 		return fs.read_direct(String.format('%s/%s.log', hp_dir, filename), 'text')
 		.then((res) => {
 			log = E('pre', { 'wrap': 'pre' }, [
@@ -211,7 +221,9 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 
 			dom.content(log_textarea, log);
 		});
-	}));
+	}
+
+	poll.add(refreshLog);
 
 	return E([
 		E('style', [ css ]),

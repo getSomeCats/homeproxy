@@ -24,11 +24,15 @@ else
 fi
 
 log() {
+	[ "$(uci -q get "$CONF.config.homeproxy_log_enabled")" = "0" ] && return 0
 	echo -e "$(date "+%Y-%m-%d %H:%M:%S") [DAEMON] $*" >> "$LOG_PATH"
 }
 
 start_service() {
 	config_load "$CONF"
+	local log_target="$LOG_PATH" homeproxy_log_enabled
+	config_get_bool homeproxy_log_enabled "config" "homeproxy_log_enabled" "1"
+	[ "$homeproxy_log_enabled" = "1" ] || log_target="/dev/null"
 
 	local routing_mode proxy_mode
 	config_get routing_mode "config" "routing_mode" "bypass_mainland_china"
@@ -52,12 +56,12 @@ start_service() {
 
 	if [ "$outbound_node" != "nil" ]; then
 		# Generate/Validate client config
-		ucode -S "$HP_DIR/scripts/generate_client.uc" 2>>"$LOG_PATH"
+		ucode -S "$HP_DIR/scripts/generate_client.uc" 2>>"$log_target"
 
 		if [ ! -e "$RUN_DIR/sing-box-c.json" ]; then
 			log "Error: failed to generate client configuration."
 			return 1
-		elif ! "$PROG" check --config "$RUN_DIR/sing-box-c.json" 2>>"$LOG_PATH"; then
+		elif ! "$PROG" check --config "$RUN_DIR/sing-box-c.json" 2>>"$log_target"; then
 			log "Error: wrong client configuration detected."
 			return 1
 		fi
@@ -181,12 +185,12 @@ start_service() {
 
 	if [ "$server_enabled" = "1" ]; then
 		# Generate/Validate server config
-		ucode -S "$HP_DIR/scripts/generate_server.uc" 2>>"$LOG_PATH"
+		ucode -S "$HP_DIR/scripts/generate_server.uc" 2>>"$log_target"
 
 		if [ ! -e "$RUN_DIR/sing-box-s.json" ]; then
 			log "Error: failed to generate server configuration."
 			return 1
-		elif ! "$PROG" check --config "$RUN_DIR/sing-box-s.json" 2>>"$LOG_PATH"; then
+		elif ! "$PROG" check --config "$RUN_DIR/sing-box-s.json" 2>>"$log_target"; then
 			log "Error: wrong server configuration detected."
 			return 1
 		fi

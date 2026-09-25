@@ -75,6 +75,9 @@ if (isEmpty(uci.get(uciconfig, ucimain, 'log_level')))
 if (isEmpty(uci.get(uciconfig, ucimain, 'log_enabled')))
 	uci.set(uciconfig, ucimain, 'log_enabled', '1');
 
+if (isEmpty(uci.get(uciconfig, ucimain, 'homeproxy_log_enabled')))
+	uci.set(uciconfig, ucimain, 'homeproxy_log_enabled', '1');
+
 if (isEmpty(uci.get(uciconfig, uciserver, 'log_level')))
 	uci.set(uciconfig, uciserver, 'log_level', 'warn');
 
