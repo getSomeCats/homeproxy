@@ -55,9 +55,9 @@ const ntp_server = uci.get(uciconfig, ucimain, 'ntp_server') || uci.get(uciconfi
 const ipv6_support = uci.get(uciconfig, ucimain, 'ipv6_support') || '0';
 
 let main_node, main_udp_node, dedicated_udp_node, default_outbound, default_outbound_dns,
-    domain_strategy, sniff_override, dns_server, china_dns_server, dns_default_strategy,
-    dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_independent_cache,
-    dns_client_subnet, cache_file_store_rdrc, cache_file_rdrc_timeout, direct_domain_list,
+    domain_strategy, default_http_client, sniff_override, dns_server, china_dns_server, dns_default_strategy,
+    dns_default_server, dns_disable_cache, dns_disable_cache_expire, dns_optimistic_cache,
+    dns_optimistic_cache_timeout, dns_client_subnet, cache_file_store_dns, direct_domain_list,
     proxy_domain_list;
 
 if (routing_mode !== 'custom') {
@@ -91,10 +91,12 @@ if (routing_mode !== 'custom') {
 	dns_default_server = uci.get(uciconfig, ucidnssetting, 'default_server');
 	dns_disable_cache = uci.get(uciconfig, ucidnssetting, 'disable_cache');
 	dns_disable_cache_expire = uci.get(uciconfig, ucidnssetting, 'disable_cache_expire');
-	dns_independent_cache = uci.get(uciconfig, ucidnssetting, 'independent_cache');
+	dns_optimistic_cache = uci.get(uciconfig, ucidnssetting, 'optimistic_cache');
+	dns_optimistic_cache_timeout = uci.get(uciconfig, ucidnssetting, 'optimistic_cache_timeout');
 	dns_client_subnet = uci.get(uciconfig, ucidnssetting, 'client_subnet');
-	cache_file_store_rdrc = uci.get(uciconfig, ucidnssetting, 'cache_file_store_rdrc'),
-	cache_file_rdrc_timeout = uci.get(uciconfig, ucidnssetting, 'cache_file_rdrc_timeout');
+	cache_file_store_dns = uci.get(uciconfig, ucidnssetting, 'cache_file_store_dns');
+	if (isEmpty(cache_file_store_dns))
+		cache_file_store_dns = uci.get(uciconfig, ucidnssetting, 'cache_file_store_rdrc');
 
 	/* Routing settings */
 	default_outbound = uci.get(uciconfig, uciroutingsetting, 'default_outbound') || 'nil';
@@ -435,7 +437,10 @@ config.dns = {
 	strategy: dns_default_strategy,
 	disable_cache: strToBool(dns_disable_cache),
 	disable_expire: strToBool(dns_disable_cache_expire),
-	independent_cache: strToBool(dns_independent_cache),
+	optimistic: (strToBool(dns_optimistic_cache) && !strToBool(dns_disable_cache) && !strToBool(dns_disable_cache_expire)) ? {
+		enabled: true,
+		timeout: strToTime(dns_optimistic_cache_timeout)
+	} : null,
 	client_subnet: dns_client_subnet
 };
 
@@ -468,6 +473,14 @@ if (!isEmpty(main_node)) {
 		});
 
 	if (routing_mode === 'bypass_mainland_china') {
+		default_http_client = 'main-http-client';
+		config.http_clients = [
+			{
+				tag: 'main-http-client',
+				detour: 'main-out'
+			}
+		];
+
 		push(config.dns.servers, {
 			tag: 'china-dns',
 			domain_resolver: {
@@ -538,11 +551,18 @@ if (!isEmpty(main_node)) {
 	});
 
 	/* DNS rules */
+	let dns_rules_use_query_constraints = false;
+	uci.foreach(uciconfig, ucidnsrule, (cfg) => {
+		if (cfg.enabled === '1' && (!isEmpty(cfg.ip_version) || !isEmpty(cfg.query_type) || !isEmpty(cfg.rule_set)))
+			dns_rules_use_query_constraints = true;
+	});
+
 	uci.foreach(uciconfig, ucidnsrule, (cfg) => {
 		if (cfg.enabled !== '1')
 			return;
 
-		push(config.dns.rules, {
+		const dnsAction = cfg.action || 'route';
+		const dnsRule = {
 			ip_version: strToInt(cfg.ip_version),
 			query_type: parse_dnsquery(cfg.query_type),
 			network: cfg.network,
@@ -565,22 +585,83 @@ if (!isEmpty(main_node)) {
 			user: cfg.user,
 			rule_set: get_ruleset(cfg.rule_set),
 			rule_set_ip_cidr_match_source: strToBool(cfg.rule_set_ip_cidr_match_source),
-			rule_set_ip_cidr_accept_empty: strToBool(cfg.rule_set_ip_cidr_accept_empty),
 			invert: strToBool(cfg.invert),
 			outbound: get_outbound(cfg.outbound),
-			action: cfg.action,
-			server: get_resolver(cfg.server),
-			strategy: cfg.domain_strategy,
-			disable_cache: strToBool(cfg.dns_disable_cache),
-			rewrite_ttl: strToInt(cfg.rewrite_ttl),
-			client_subnet: cfg.client_subnet,
-			method: cfg.reject_method,
-			no_drop: strToBool(cfg.reject_no_drop),
-			rcode: cfg.predefined_rcode,
-			answer: cfg.predefined_answer,
-			ns: cfg.predefined_ns,
-			extra: cfg.predefined_extra
-		});
+			action: dnsAction,
+			server: (dnsAction === 'route') ? get_resolver(cfg.server) : null,
+			strategy: (dnsAction === 'route' && !dns_rules_use_query_constraints) ? cfg.domain_strategy : null,
+			disable_cache: (dnsAction in ['route', 'route-options']) ? strToBool(cfg.dns_disable_cache) : null,
+			rewrite_ttl: (dnsAction in ['route', 'route-options']) ? strToInt(cfg.rewrite_ttl) : null,
+			client_subnet: (dnsAction in ['route', 'route-options']) ? cfg.client_subnet : null,
+			method: (dnsAction === 'reject') ? cfg.reject_method : null,
+			no_drop: (dnsAction === 'reject') ? strToBool(cfg.reject_no_drop) : null,
+			rcode: (dnsAction === 'predefined') ? cfg.predefined_rcode : null,
+			answer: (dnsAction === 'predefined') ? cfg.predefined_answer : null,
+			ns: (dnsAction === 'predefined') ? cfg.predefined_ns : null,
+			extra: (dnsAction === 'predefined') ? cfg.predefined_extra : null
+		};
+
+		const matchDnsResponse = !isEmpty(cfg.ip_cidr) || strToBool(cfg.ip_is_private) ||
+			((!isEmpty(cfg.dns_match_response) || cfg.dns_match_response === '0') ?
+				strToBool(cfg.dns_match_response) : strToBool(cfg.rule_set_ip_cidr_accept_empty));
+		const acceptEmptyResponse = (!isEmpty(cfg.dns_accept_empty_response) || cfg.dns_accept_empty_response === '0') ?
+			strToBool(cfg.dns_accept_empty_response) : strToBool(cfg.rule_set_ip_cidr_accept_empty);
+
+		if (matchDnsResponse) {
+			const responseTag = 'cfg-' + cfg['.name'] + '-dns-response';
+			const responseServer = (dnsAction === 'route' && dnsRule.server) ? dnsRule.server :
+				(get_resolver(dns_default_server) || 'default-dns');
+
+			const evaluateRule = {
+				...dnsRule,
+				ip_cidr: null,
+				ip_is_private: null,
+				rule_set: null,
+				rule_set_ip_cidr_match_source: null,
+				invert: null,
+				action: 'evaluate',
+				server: responseServer,
+				tag: responseTag,
+				strategy: null,
+				method: null,
+				no_drop: null,
+				rcode: null,
+				answer: null,
+				ns: null,
+				extra: null
+			};
+
+			if (strToBool(cfg.invert))
+				for (let field in [
+					'ip_version', 'query_type', 'network', 'protocol', 'domain', 'domain_suffix',
+					'domain_keyword', 'domain_regex', 'port', 'port_range', 'source_ip_cidr',
+					'source_ip_is_private', 'source_port', 'source_port_range', 'process_name',
+					'process_path', 'process_path_regex', 'user', 'outbound'
+				])
+					evaluateRule[field] = null;
+
+			push(config.dns.rules, evaluateRule);
+
+			dnsRule.match_response = responseTag;
+			dnsRule.ip_accept_any = acceptEmptyResponse;
+
+			if (dnsAction === 'route') {
+				dnsRule.action = 'respond';
+				dnsRule.server = null;
+				dnsRule.strategy = null;
+				dnsRule.disable_cache = null;
+				dnsRule.rewrite_ttl = null;
+				dnsRule.client_subnet = null;
+				dnsRule.method = null;
+				dnsRule.no_drop = null;
+				dnsRule.rcode = null;
+				dnsRule.answer = null;
+				dnsRule.ns = null;
+				dnsRule.extra = null;
+			}
+		}
+
+		push(config.dns.rules, dnsRule);
 	});
 
 	if (isEmpty(config.dns.rules))
@@ -785,6 +866,7 @@ config.route = {
 		}
 	],
 	rule_set: [],
+	default_http_client: default_http_client,
 	auto_detect_interface: isEmpty(default_interface) ? true : null,
 	default_interface: default_interface
 };
@@ -852,21 +934,21 @@ if (!isEmpty(main_node)) {
 			tag: 'geoip-cn',
 			format: 'binary',
 			url: 'https://fastly.jsdelivr.net/gh/1715173329/IPCIDR-CHINA@rule-set/cn.srs',
-			download_detour: 'main-out'
+			http_client: 'main-http-client'
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-cn',
 			format: 'binary',
 			url: 'https://fastly.jsdelivr.net/gh/1715173329/sing-geosite@rule-set-unstable/geosite-geolocation-cn.srs',
-			download_detour: 'main-out'
+			http_client: 'main-http-client'
 		});
 		push(config.route.rule_set, {
 			type: 'remote',
 			tag: 'geosite-noncn',
 			format: 'binary',
 			url: 'https://fastly.jsdelivr.net/gh/1715173329/sing-geosite@rule-set-unstable/geosite-geolocation-!cn.srs',
-			download_detour: 'main-out'
+			http_client: 'main-http-client'
 		});
 	}
 
@@ -937,13 +1019,30 @@ if (!isEmpty(main_node)) {
 		if (cfg.enabled !== '1')
 			return null;
 
+		let http_client = null;
+		if (cfg.type === 'remote') {
+			http_client = 'cfg-' + cfg['.name'] + '-http-client';
+			if (!config.http_clients)
+				config.http_clients = [];
+
+			push(config.http_clients, {
+				tag: http_client,
+				detour: get_outbound(cfg.outbound)
+			});
+
+			if (isEmpty(default_http_client)) {
+				default_http_client = http_client;
+				config.route.default_http_client = default_http_client;
+			}
+		}
+
 		push(config.route.rule_set, {
 			type: cfg.type,
 			tag: 'cfg-' + cfg['.name'] + '-rule',
 			format: cfg.format,
 			path: cfg.path,
 			url: cfg.url,
-			download_detour: get_outbound(cfg.outbound),
+			http_client: http_client,
 			update_interval: cfg.update_interval
 		});
 	});
@@ -956,8 +1055,7 @@ if (routing_mode in ['bypass_mainland_china', 'custom']) {
 		cache_file: {
 			enabled: true,
 			path: RUN_DIR + '/cache.db',
-			store_rdrc: strToBool(cache_file_store_rdrc),
-			rdrc_timeout: strToTime(cache_file_rdrc_timeout),
+			store_dns: strToBool(cache_file_store_dns),
 		}
 	};
 }

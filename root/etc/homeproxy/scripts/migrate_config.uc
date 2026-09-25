@@ -81,6 +81,20 @@ if (isEmpty(uci.get(uciconfig, uciserver, 'log_level')))
 if (isEmpty(uci.get(uciconfig, uciserver, 'log_enabled')))
 	uci.set(uciconfig, uciserver, 'log_enabled', '1');
 
+/* sing-box 1.14 DNS cache options */
+if (!isEmpty(uci.get(uciconfig, ucidns, 'independent_cache')))
+	uci.delete(uciconfig, ucidns, 'independent_cache');
+
+if (!isEmpty(uci.get(uciconfig, ucidns, 'cache_file_store_rdrc'))) {
+	if (isEmpty(uci.get(uciconfig, ucidns, 'cache_file_store_dns')))
+		uci.rename(uciconfig, ucidns, 'cache_file_store_rdrc', 'cache_file_store_dns');
+	else
+		uci.delete(uciconfig, ucidns, 'cache_file_store_rdrc');
+}
+
+if (!isEmpty(uci.get(uciconfig, ucidns, 'cache_file_rdrc_timeout')))
+	uci.delete(uciconfig, ucidns, 'cache_file_rdrc_timeout');
+
 /* empty value defaults to all ports now */
 if (uci.get(uciconfig, ucimain, 'routing_port') === 'all')
 	uci.delete(uciconfig, ucimain, 'routing_port');
@@ -188,6 +202,16 @@ uci.foreach(uciconfig, ucidnsrule, (cfg) => {
 	/* rule_set_ipcidr_match_source was renamed in sb 1.10 */
 	if (cfg.rule_set_ipcidr_match_source === '1')
 		uci.rename(uciconfig, cfg['.name'], 'rule_set_ipcidr_match_source', 'rule_set_ip_cidr_match_source');
+
+	/* legacy DNS response matching uses the 1.14 evaluate/match_response flow */
+	if (cfg.rule_set_ip_cidr_accept_empty === '1') {
+		if (isEmpty(cfg.dns_match_response))
+			uci.set(uciconfig, cfg['.name'], 'dns_match_response', '1');
+		if (isEmpty(cfg.dns_accept_empty_response))
+			uci.set(uciconfig, cfg['.name'], 'dns_accept_empty_response', '1');
+	}
+	if (!isEmpty(cfg.rule_set_ip_cidr_accept_empty))
+		uci.delete(uciconfig, cfg['.name'], 'rule_set_ip_cidr_accept_empty');
 
 	/* block-dns was moved into action in sb 1.11 */
 	if (cfg.server === 'block-dns') {

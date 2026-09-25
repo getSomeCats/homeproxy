@@ -949,23 +949,26 @@ return view.extend({
 		so = ss.option(form.Flag, 'disable_cache_expire', _('Disable cache expire'));
 		so.depends('disable_cache', '0');
 
-		so = ss.option(form.Flag, 'independent_cache', _('Independent cache per server'),
-			_('Make each DNS server\'s cache independent for special purposes. If enabled, will slightly degrade performance.'));
-		so.depends('disable_cache', '0');
+		so = ss.option(form.Flag, 'optimistic_cache', _('Optimistic DNS cache'),
+			_('Serve expired DNS cache entries while refreshing them in the background. This option conflicts with disabling DNS cache or cache expiration.'));
+		so.depends({'disable_cache': '0', 'disable_cache_expire': '0'});
+
+		so = ss.option(form.Value, 'optimistic_cache_timeout', _('Optimistic cache timeout'),
+			_('Maximum age in seconds for serving expired DNS cache entries. Defaults to 259200 (3 days).'));
+		so.datatype = 'uinteger';
+		so.depends({'optimistic_cache': '1', 'disable_cache': '0', 'disable_cache_expire': '0'});
 
 		so = ss.option(form.Value, 'client_subnet', _('EDNS Client subnet'),
 			_('Append a <code>edns0-subnet</code> OPT extra record with the specified IP prefix to every query by default.<br/>' +
 			'If value is an IP address instead of prefix, <code>/32</code> or <code>/128</code> will be appended automatically.'));
 		so.datatype = 'or(cidr, ipaddr)';
 
-		so = ss.option(form.Flag, 'cache_file_store_rdrc', _('Store RDRC'),
-			_('Store rejected DNS response cache.<br/>' +
-			'The check results of <code>Address filter DNS rule items</code> will be cached until expiration.'));
-
-		so = ss.option(form.Value, 'cache_file_rdrc_timeout', _('RDRC timeout'),
-			_('Timeout of rejected DNS response cache in seconds. <code>604800 (7d)</code> is used by default.'));
-		so.datatype = 'uinteger';
-		so.depends('cache_file_store_rdrc', '1');
+		so = ss.option(form.Flag, 'cache_file_store_dns', _('Store DNS cache'),
+			_('Persist the DNS cache in the cache file.'));
+		so.cfgvalue = function(section_id) {
+			const value = uci.get(data[0], section_id, 'cache_file_store_dns');
+			return value != null ? value : uci.get(data[0], section_id, 'cache_file_store_rdrc');
+		};
 		/* DNS settings end */
 
 		/* DNS servers start */
@@ -1183,8 +1186,21 @@ return view.extend({
 			_('Make IP CIDR in rule sets match the source IP.'));
 		so.modalonly = true;
 
-		so = ss.taboption('field_other', form.Flag, 'rule_set_ip_cidr_accept_empty', _('Accept empty query response'),
-			_('Make IP CIDR in rule-sets accept empty query response.'));
+		so = ss.taboption('field_other', form.Flag, 'dns_match_response', _('Match DNS response'),
+			_('Match IP CIDR items in rule sets against the DNS response. This is needed for rule sets that contain IP CIDR rules.'));
+		so.cfgvalue = function(section_id) {
+			const value = uci.get(data[0], section_id, 'dns_match_response');
+			return value != null ? value : uci.get(data[0], section_id, 'rule_set_ip_cidr_accept_empty');
+		};
+		so.modalonly = true;
+
+		so = ss.taboption('field_other', form.Flag, 'dns_accept_empty_response', _('Accept empty DNS response'),
+			_('Match responses that contain no IP addresses.'));
+		so.cfgvalue = function(section_id) {
+			const value = uci.get(data[0], section_id, 'dns_accept_empty_response');
+			return value != null ? value : uci.get(data[0], section_id, 'rule_set_ip_cidr_accept_empty');
+		};
+		so.depends('dns_match_response', '1');
 		so.modalonly = true;
 
 		so = ss.taboption('field_other', form.Flag, 'invert', _('Invert'),
@@ -1220,7 +1236,7 @@ return view.extend({
 		so.depends('action', 'route');
 
 		so = ss.taboption('field_other', form.ListValue, 'domain_strategy', _('Domain strategy'),
-			_('Set domain strategy for this query.'));
+			_('Set domain strategy for this query. This option is deprecated in sing-box 1.14.0 and ignored when any DNS rule uses IP version or query type, or references a rule set.'));
 		for (let i in hp.dns_strategy)
 			so.value(i, hp.dns_strategy[i]);
 		so.depends('action', 'route');
