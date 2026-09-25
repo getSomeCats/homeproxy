@@ -1015,20 +1015,29 @@ if (!isEmpty(main_node)) {
 	}
 
 	/* Rule set */
+	const http_client_by_outbound = {};
 	uci.foreach(uciconfig, uciruleset, (cfg) => {
 		if (cfg.enabled !== '1')
 			return null;
 
 		let http_client = null;
 		if (cfg.type === 'remote') {
-			http_client = 'cfg-' + cfg['.name'] + '-http-client';
-			if (!config.http_clients)
-				config.http_clients = [];
+			const detour = get_outbound(cfg.outbound);
+			const outbound_key = isEmpty(detour) ? 'default-outbound' : detour;
+			http_client = http_client_by_outbound[outbound_key];
 
-			push(config.http_clients, {
-				tag: http_client,
-				detour: get_outbound(cfg.outbound)
-			});
+			if (isEmpty(http_client)) {
+				http_client = 'cfg-' + cfg['.name'] + '-http-client';
+				http_client_by_outbound[outbound_key] = http_client;
+
+				if (!config.http_clients)
+					config.http_clients = [];
+
+				push(config.http_clients, {
+					tag: http_client,
+					detour: detour
+				});
+			}
 
 			if (isEmpty(default_http_client)) {
 				default_http_client = http_client;
