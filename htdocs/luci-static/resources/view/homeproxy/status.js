@@ -116,7 +116,7 @@ function getResVersion(o, type) {
 function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 	const filename = o.option.split('_')[1];
 
-	let section, log_level_el;
+	let section, log_level_el, log_toggle_el, log_enabled;
 	switch (filename) {
 	case 'homeproxy':
 		section = null;
@@ -131,6 +131,7 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 
 	if (section) {
 		const selected = uci.get('homeproxy', section, 'log_level') || 'warn';
+		log_enabled = uci.get('homeproxy', section, 'log_enabled') !== '0';
 		const choices = {
 			trace: _('Trace'),
 			debug: _('Debug'),
@@ -159,6 +160,19 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 				'selected': (v === selected) ? '' : null
 			}, [ choices[v] ]));
 		});
+
+		log_toggle_el = E('button', {
+			'class': 'btn cbi-button cbi-button-action',
+			'style': 'margin-left: 4px;',
+			'click': ui.createHandlerFn(this, () => {
+				uci.set('homeproxy', section, 'log_enabled', log_enabled ? '0' : '1');
+				return o.map.save(null, true).then(() => {
+					log_enabled = !log_enabled;
+					log_toggle_el.textContent = log_enabled ? _('Disable logging') : _('Enable logging');
+					return ui.changes.apply(true);
+				});
+			})
+		}, [ log_enabled ? _('Disable logging') : _('Enable logging') ]);
 	}
 
 	const callLogClean = rpc.declare({
@@ -205,6 +219,7 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 			E('h3', {'name': 'content', 'style': 'align-items: center; display: flex;'}, [
 				_('%s log').format(name),
 				log_level_el || '',
+				log_toggle_el || '',
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',
 					'style': 'margin-left: 4px;',

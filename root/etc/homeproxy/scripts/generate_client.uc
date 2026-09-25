@@ -137,6 +137,7 @@ if (match(proxy_mode, /tun/)) {
 }
 
 const log_level = uci.get(uciconfig, ucimain, 'log_level') || 'warn';
+const log_enabled = uci.get(uciconfig, ucimain, 'log_enabled') !== '0';
 /* UCI config end */
 
 /* Config helper start */
@@ -400,7 +401,7 @@ const config = {};
 
 /* Log */
 config.log = {
-	disabled: false,
+	disabled: !log_enabled,
 	level: log_level,
 	output: RUN_DIR + '/sing-box-c.log',
 	timestamp: true

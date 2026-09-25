@@ -545,6 +545,10 @@ msgstr "直连 MAC 地址"
 msgid "Disable"
 msgstr "禁用"
 
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Disable logging"
+msgstr "禁用日志"
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:363
 msgid "Disable (the service)"
 msgstr "禁用（服务）"
@@ -755,6 +759,10 @@ msgid ""
 msgstr ""
 "在客户端启用 0-RTT QUIC 连接握手。由于协议是完全复用的，这对性能影响不大。"
 "<br/>强烈建议禁用此功能，因为它容易受到重放攻击。"
+
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Enable logging"
+msgstr "启用日志"
 
 #: htdocs/luci-static/resources/view/homeproxy/node.js:721
 #: htdocs/luci-static/resources/view/homeproxy/server.js:370

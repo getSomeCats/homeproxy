@@ -534,6 +534,10 @@ msgstr ""
 msgid "Disable"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Disable logging"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:363
 msgid "Disable (the service)"
 msgstr ""
@@ -731,6 +735,10 @@ msgid ""
 "Enable 0-RTT QUIC connection handshake on the client side. This is not "
 "impacting much on the performance, as the protocol is fully multiplexed.<br/"
 ">Disabling this is highly recommended, as it is vulnerable to replay attacks."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Enable logging"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/node.js:721

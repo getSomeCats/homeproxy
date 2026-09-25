@@ -72,8 +72,14 @@ if (!migration_crontab) {
 if (isEmpty(uci.get(uciconfig, ucimain, 'log_level')))
 	uci.set(uciconfig, ucimain, 'log_level', 'warn');
 
+if (isEmpty(uci.get(uciconfig, ucimain, 'log_enabled')))
+	uci.set(uciconfig, ucimain, 'log_enabled', '1');
+
 if (isEmpty(uci.get(uciconfig, uciserver, 'log_level')))
 	uci.set(uciconfig, uciserver, 'log_level', 'warn');
+
+if (isEmpty(uci.get(uciconfig, uciserver, 'log_enabled')))
+	uci.set(uciconfig, uciserver, 'log_enabled', '1');
 
 /* empty value defaults to all ports now */
 if (uci.get(uciconfig, ucimain, 'routing_port') === 'all')
