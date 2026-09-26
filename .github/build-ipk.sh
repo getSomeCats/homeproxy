@@ -8,6 +8,7 @@ set -o pipefail
 
 PKG_MGR="${1:-apk}"
 RELEASE_TYPE="${2:-snapshot}"
+RELEASE_VERSION="${3:-}"
 
 export PKG_SOURCE_DATE_EPOCH="$(date "+%s")"
 export SOURCE_DATE_EPOCH="$PKG_SOURCE_DATE_EPOCH"
@@ -21,7 +22,14 @@ function get_mk_value() {
 
 PKG_NAME="$(get_mk_value "PKG_NAME")"
 if [ "$RELEASE_TYPE" == "release" ]; then
-	PKG_VERSION="$(get_mk_value "PKG_VERSION")"
+	PKG_VERSION="${RELEASE_VERSION#v}"
+	if [ -z "$PKG_VERSION" ]; then
+		PKG_VERSION="$(get_mk_value "PKG_VERSION")"
+	fi
+	if [ -z "$PKG_VERSION" ]; then
+		echo "ERROR: release package version is empty; pass a release tag or define PKG_VERSION in Makefile." >&2
+		exit 1
+	fi
 else
 	PKG_VERSION="$PKG_SOURCE_DATE_EPOCH~$(git rev-parse --short HEAD)"
 fi
