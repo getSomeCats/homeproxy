@@ -11,7 +11,7 @@ function array_to_nftarr(array) {
 	if (type(array) !== 'array')
 		return null;
 
-	return `{ ${join(', ', uniq(array))} }`;
+	return `{ ${join(', ', uniq(map(array, (item) => trim(split(item, '#')[0]))))} }`;
 }
 
 function resolve_ipv6(str) {
@@ -55,6 +55,10 @@ const resources_dir = '/etc/homeproxy/resources';
 const cfgname = 'homeproxy';
 const uci = cursor();
 uci.load(cfgname);
+
+const auto_redirect = uci.get(cfgname, 'config', 'auto_redirect') || '0';
+if (auto_redirect === '1')
+	return;
 
 const routing_mode = uci.get(cfgname, 'config', 'routing_mode') || 'bypass_mainland_china';
 let outbound_node, outbound_udp_node, china_dns_server, bypass_cn_traffic;

@@ -534,6 +534,10 @@ msgstr ""
 msgid "Disable"
 msgstr ""
 
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Disable logging"
+msgstr ""
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:363
 msgid "Disable (the service)"
 msgstr ""
@@ -731,6 +735,10 @@ msgid ""
 "Enable 0-RTT QUIC connection handshake on the client side. This is not "
 "impacting much on the performance, as the protocol is fully multiplexed.<br/"
 ">Disabling this is highly recommended, as it is vulnerable to replay attacks."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Enable logging"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/node.js:721
@@ -1318,6 +1326,10 @@ msgstr ""
 msgid "Log is empty."
 msgstr ""
 
+#: htdocs/luci-static/resources/view/homeproxy/status.js
+msgid "Logging is disabled."
+msgstr ""
+
 #: htdocs/luci-static/resources/view/homeproxy/node.js:930
 msgid "MTU"
 msgstr ""
@@ -1714,7 +1726,7 @@ msgid "Path"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/node.js:911
-msgid "Peer pubkic key"
+msgid "Peer public key"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:329
@@ -1748,7 +1760,7 @@ msgid "Port"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:276
-msgid "Port %s alrealy exists!"
+msgid "Port %s already exists!"
 msgstr ""
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:582
@@ -3048,4 +3060,44 @@ msgstr ""
 
 #: htdocs/luci-static/resources/homeproxy.js:328
 msgid "valid uuid"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Accept empty DNS response"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Match DNS response"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Match IP CIDR items in rule sets against the DNS response. This is needed for rule sets that contain IP CIDR rules."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Maximum age in seconds for serving expired DNS cache entries. Defaults to 259200 (3 days)."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Optimistic cache timeout"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Optimistic DNS cache"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Persist the DNS cache in the cache file."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Serve expired DNS cache entries while refreshing them in the background. This option conflicts with disabling DNS cache or cache expiration."
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Store DNS cache"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Set domain strategy for this query. This option is deprecated in sing-box 1.14.0 and ignored when any DNS rule uses IP version or query type, or references a rule set."
 msgstr ""

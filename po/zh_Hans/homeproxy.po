@@ -545,6 +545,10 @@ msgstr "直连 MAC 地址"
 msgid "Disable"
 msgstr "禁用"
 
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Disable logging"
+msgstr "禁用日志"
+
 #: htdocs/luci-static/resources/view/homeproxy/client.js:363
 msgid "Disable (the service)"
 msgstr "禁用（服务）"
@@ -755,6 +759,10 @@ msgid ""
 msgstr ""
 "在客户端启用 0-RTT QUIC 连接握手。由于协议是完全复用的，这对性能影响不大。"
 "<br/>强烈建议禁用此功能，因为它容易受到重放攻击。"
+
+#: htdocs/luci-static/resources/view/homeproxy/status.js:175
+msgid "Enable logging"
+msgstr "启用日志"
 
 #: htdocs/luci-static/resources/view/homeproxy/node.js:721
 #: htdocs/luci-static/resources/view/homeproxy/server.js:370
@@ -1347,6 +1355,10 @@ msgstr "日志文件不存在。"
 msgid "Log is empty."
 msgstr "日志为空。"
 
+#: htdocs/luci-static/resources/view/homeproxy/status.js
+msgid "Logging is disabled."
+msgstr "日志已禁用。"
+
 #: htdocs/luci-static/resources/view/homeproxy/node.js:930
 msgid "MTU"
 msgstr "MTU"
@@ -1616,7 +1628,7 @@ msgstr "New Reno"
 #: htdocs/luci-static/resources/view/homeproxy/server.js:400
 #: htdocs/luci-static/resources/view/homeproxy/server.js:417
 msgid "No TCP transport, plain HTTP is merged into the HTTP transport."
-msgstr "无 TCP 传输层, 纯 HTTP 已合并到 HTTP 传输层。"
+msgstr "无 TCP 传输层，纯 HTTP 已合并到 HTTP 传输层。"
 
 #: htdocs/luci-static/resources/view/homeproxy/node.js:789
 #: htdocs/luci-static/resources/view/homeproxy/server.js:415
@@ -1745,7 +1757,7 @@ msgid "Path"
 msgstr "路径"
 
 #: htdocs/luci-static/resources/view/homeproxy/node.js:911
-msgid "Peer pubkic key"
+msgid "Peer public key"
 msgstr "对端公钥"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:329
@@ -1779,7 +1791,7 @@ msgid "Port"
 msgstr "端口"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:276
-msgid "Port %s alrealy exists!"
+msgid "Port %s already exists!"
 msgstr "端口 %s 已存在！"
 
 #: htdocs/luci-static/resources/view/homeproxy/client.js:582
@@ -3119,3 +3131,43 @@ msgstr "有效端口值"
 #: htdocs/luci-static/resources/homeproxy.js:328
 msgid "valid uuid"
 msgstr "有效 uuid"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Accept empty DNS response"
+msgstr "接受不含 IP 地址的 DNS 响应"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Match DNS response"
+msgstr "匹配 DNS 响应"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Match IP CIDR items in rule sets against the DNS response. This is needed for rule sets that contain IP CIDR rules."
+msgstr "将规则集中的 IP CIDR 项与 DNS 响应匹配。规则集包含 IP CIDR 规则时需要启用此选项。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Maximum age in seconds for serving expired DNS cache entries. Defaults to 259200 (3 days)."
+msgstr "继续提供过期 DNS 缓存的最长时间（秒），默认值为 259200（3 天）。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Optimistic cache timeout"
+msgstr "乐观缓存超时"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Optimistic DNS cache"
+msgstr "乐观 DNS 缓存"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Persist the DNS cache in the cache file."
+msgstr "将 DNS 缓存持久化保存到缓存文件。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Serve expired DNS cache entries while refreshing them in the background. This option conflicts with disabling DNS cache or cache expiration."
+msgstr "后台刷新时继续使用已过期的 DNS 缓存。此选项不能与禁用 DNS 缓存或缓存过期同时使用。"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Store DNS cache"
+msgstr "保存 DNS 缓存"
+
+#: htdocs/luci-static/resources/view/homeproxy/client.js
+msgid "Set domain strategy for this query. This option is deprecated in sing-box 1.14.0 and ignored when any DNS rule uses IP version or query type, or references a rule set."
+msgstr "设置此查询的域名策略。此选项在 sing-box 1.14.0 中已弃用；当任一 DNS 规则使用 IP 版本、查询类型或引用规则集时会忽略此选项。"

@@ -72,6 +72,31 @@ let stubValidator = {
 	}
 };
 
+let validateMACWithRemark = function(section_id, value) {
+	if (!value) return true;
+	let mac = value.split('#')[0].trim();
+	if (!stubValidator.apply('macaddr', mac))
+		return _('Expecting: %s').format(_('valid MAC address'));
+	return true;
+};
+
+let convertMACRemarks = function(so) {
+	so.datatype = 'string';
+	so.validate = validateMACWithRemark;
+	if (so.keylist && so.vallist) {
+		for (let i = 0; i < so.keylist.length; i++) {
+			let label = so.vallist[i];
+			if (!label) continue;
+
+			let labelStr = label.textContent || String(label);
+			let m = labelStr.match(/^([0-9a-fA-F:]+)\s*\((.+)\)$/i);
+			if (m && m[2] !== '?') {
+				so.keylist[i] = m[1] + '#' + m[2].replace(/\s+/g, '_');
+			}
+		}
+	}
+};
+
 return view.extend({
 	load() {
 		return Promise.all([
@@ -180,12 +205,19 @@ return view.extend({
 			_('Support UDP, TCP, DoH, DoQ, DoT. TCP protocol will be used if not specified.'));
 		o.value('wan', _('WAN DNS (read from interface)'));
 		o.value('1.1.1.1', _('CloudFlare Public DNS (1.1.1.1)'));
+		o.value('https://cloudflare-dns.com/dns-query', _('CloudFlare DoH (cloudflare-dns.com)'));
 		o.value('208.67.222.222', _('Cisco Public DNS (208.67.222.222)'));
 		o.value('8.8.8.8', _('Google Public DNS (8.8.8.8)'));
+		o.value('https://dns.google/dns-query', _('Google DoH (dns.google)'));
 		o.value('', '---');
 		o.value('223.5.5.5', _('Aliyun Public DNS (223.5.5.5)'));
+		o.value('https://dns.alidns.com/dns-query', _('Aliyun DoH (dns.alidns.com)'));
 		o.value('119.29.29.29', _('Tencent Public DNS (119.29.29.29)'));
+		o.value('https://doh.pub/dns-query', _('Tencent DoH (doh.pub)'));
 		o.value('117.50.10.10', _('ThreatBook Public DNS (117.50.10.10)'));
+		o.value('', '---');
+		o.value('127.0.0.1:5335', _('MosDNS (127.0.0.1:5335)'));
+		o.value('127.0.0.1:53', _('Dnsmasq (127.0.0.1:53)'));
 		o.default = '8.8.8.8';
 		o.rmempty = false;
 		o.depends({'routing_mode': 'custom', '!reverse': true});
@@ -196,7 +228,7 @@ return view.extend({
 
 				let ipv6_support = this.section.formvalue(section_id, 'ipv6_support');
 				try {
-					let url = new URL(value.replace(/^.*:\/\//, 'http://'));
+					let url = new URL(value.includes('://') ? value.replace(/^.*:\/\//, 'http://') : 'http://' + value);
 					if (stubValidator.apply('hostname', url.hostname))
 						return true;
 					else if (stubValidator.apply('ip4addr', url.hostname))
@@ -218,9 +250,14 @@ return view.extend({
 			_('The dns server for resolving China domains. Support UDP, TCP, DoH, DoQ, DoT.'));
 		o.value('wan', _('WAN DNS (read from interface)'));
 		o.value('223.5.5.5', _('Aliyun Public DNS (223.5.5.5)'));
+		o.value('https://dns.alidns.com/dns-query', _('Aliyun DoH (dns.alidns.com)'));
 		o.value('210.2.4.8', _('CNNIC Public DNS (210.2.4.8)'));
 		o.value('119.29.29.29', _('Tencent Public DNS (119.29.29.29)'));
+		o.value('https://doh.pub/dns-query', _('Tencent DoH (doh.pub)'));
 		o.value('117.50.10.10', _('ThreatBook Public DNS (117.50.10.10)'));
+		o.value('', '---');
+		o.value('127.0.0.1:5335', _('MosDNS (127.0.0.1:5335)'));
+		o.value('127.0.0.1:53', _('Dnsmasq (127.0.0.1:53)'));
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.default = '223.5.5.5';
 		o.rmempty = false;
@@ -230,7 +267,7 @@ return view.extend({
 					return _('Expecting: %s').format(_('non-empty value'));
 
 				try {
-					let url = new URL(value.replace(/^.*:\/\//, 'http://'));
+					let url = new URL(value.includes('://') ? value.replace(/^.*:\/\//, 'http://') : 'http://' + value);
 					if (stubValidator.apply('hostname', url.hostname))
 						return true;
 					else if (stubValidator.apply('ip4addr', url.hostname))
@@ -273,7 +310,7 @@ return view.extend({
 					if (!stubValidator.apply('port', i) && !stubValidator.apply('portrange', i))
 						return _('Expecting: %s').format(_('valid port value'));
 					if (ports.includes(i))
-						return _('Port %s alrealy exists!').format(i);
+						return _('Port %s already exists!').format(i);
 					ports = ports.concat(i);
 				}
 			}
@@ -296,6 +333,20 @@ return view.extend({
 
 		o = s.taboption('routing', form.Flag, 'ipv6_support', _('IPv6 support'));
 		o.default = o.enabled;
+		o.rmempty = false;
+
+		o = s.taboption('routing', form.Value, 'ntp_server', _('NTP server'),
+			_('NTP server address for time synchronization. Set to "nil" to disable NTP.'));
+		o.value('nil', _('Disable'));
+		o.value('time.apple.com', 'Apple (time.apple.com)');
+		o.value('ntp.aliyun.com', 'Aliyun (ntp.aliyun.com)');
+		o.value('ntp.tencent.com', 'Tencent (ntp.tencent.com)');
+		o.value('cn.pool.ntp.org', 'NTP Pool (cn.pool.ntp.org)');
+		o.default = 'time.apple.com';
+		o.load = function(section_id) {
+			let val = uci.get('homeproxy', section_id, 'ntp_server') || uci.get('homeproxy', 'infra', 'ntp_server');
+			return val || this.default;
+		};
 		o.rmempty = false;
 
 		/* Custom routing settings start */
@@ -381,10 +432,6 @@ return view.extend({
 
 			this.value('default-dns', _('Default DNS (issued by WAN)'));
 			this.value('system-dns', _('System DNS'));
-			uci.sections(data[0], 'dns_server', (res) => {
-				if (res.enabled === '1')
-					this.value(res['.name'], res.label);
-			});
 
 			return this.super('load', section_id);
 		}
@@ -671,6 +718,7 @@ return view.extend({
 		so.value('route-options', _('Route options'));
 		so.value('reject', _('Reject'));
 		so.value('resolve', _('Resolve'));
+		so.value('bypass', _('Bypass'));
 		so.default = 'route';
 		so.rmempty = false;
 		so.editable = true;
@@ -901,23 +949,26 @@ return view.extend({
 		so = ss.option(form.Flag, 'disable_cache_expire', _('Disable cache expire'));
 		so.depends('disable_cache', '0');
 
-		so = ss.option(form.Flag, 'independent_cache', _('Independent cache per server'),
-			_('Make each DNS server\'s cache independent for special purposes. If enabled, will slightly degrade performance.'));
-		so.depends('disable_cache', '0');
+		so = ss.option(form.Flag, 'optimistic_cache', _('Optimistic DNS cache'),
+			_('Serve expired DNS cache entries while refreshing them in the background. This option conflicts with disabling DNS cache or cache expiration.'));
+		so.depends({'disable_cache': '0', 'disable_cache_expire': '0'});
+
+		so = ss.option(form.Value, 'optimistic_cache_timeout', _('Optimistic cache timeout'),
+			_('Maximum age in seconds for serving expired DNS cache entries. Defaults to 259200 (3 days).'));
+		so.datatype = 'uinteger';
+		so.depends({'optimistic_cache': '1', 'disable_cache': '0', 'disable_cache_expire': '0'});
 
 		so = ss.option(form.Value, 'client_subnet', _('EDNS Client subnet'),
 			_('Append a <code>edns0-subnet</code> OPT extra record with the specified IP prefix to every query by default.<br/>' +
 			'If value is an IP address instead of prefix, <code>/32</code> or <code>/128</code> will be appended automatically.'));
 		so.datatype = 'or(cidr, ipaddr)';
 
-		so = ss.option(form.Flag, 'cache_file_store_rdrc', _('Store RDRC'),
-			_('Store rejected DNS response cache.<br/>' +
-			'The check results of <code>Address filter DNS rule items</code> will be cached until expiration.'));
-
-		so = ss.option(form.Value, 'cache_file_rdrc_timeout', _('RDRC timeout'),
-			_('Timeout of rejected DNS response cache in seconds. <code>604800 (7d)</code> is used by default.'));
-		so.datatype = 'uinteger';
-		so.depends('cache_file_store_rdrc', '1');
+		so = ss.option(form.Flag, 'cache_file_store_dns', _('Store DNS cache'),
+			_('Persist the DNS cache in the cache file.'));
+		so.cfgvalue = function(section_id) {
+			const value = uci.get(data[0], section_id, 'cache_file_store_dns');
+			return value != null ? value : uci.get(data[0], section_id, 'cache_file_store_rdrc');
+		};
 		/* DNS settings end */
 
 		/* DNS servers start */
@@ -1135,8 +1186,21 @@ return view.extend({
 			_('Make IP CIDR in rule sets match the source IP.'));
 		so.modalonly = true;
 
-		so = ss.taboption('field_other', form.Flag, 'rule_set_ip_cidr_accept_empty', _('Accept empty query response'),
-			_('Make IP CIDR in rule-sets accept empty query response.'));
+		so = ss.taboption('field_other', form.Flag, 'dns_match_response', _('Match DNS response'),
+			_('Match IP CIDR items in rule sets against the DNS response. This is needed for rule sets that contain IP CIDR rules.'));
+		so.cfgvalue = function(section_id) {
+			const value = uci.get(data[0], section_id, 'dns_match_response');
+			return value != null ? value : uci.get(data[0], section_id, 'rule_set_ip_cidr_accept_empty');
+		};
+		so.modalonly = true;
+
+		so = ss.taboption('field_other', form.Flag, 'dns_accept_empty_response', _('Accept empty DNS response'),
+			_('Match responses that contain no IP addresses.'));
+		so.cfgvalue = function(section_id) {
+			const value = uci.get(data[0], section_id, 'dns_accept_empty_response');
+			return value != null ? value : uci.get(data[0], section_id, 'rule_set_ip_cidr_accept_empty');
+		};
+		so.depends('dns_match_response', '1');
 		so.modalonly = true;
 
 		so = ss.taboption('field_other', form.Flag, 'invert', _('Invert'),
@@ -1172,7 +1236,7 @@ return view.extend({
 		so.depends('action', 'route');
 
 		so = ss.taboption('field_other', form.ListValue, 'domain_strategy', _('Domain strategy'),
-			_('Set domain strategy for this query.'));
+			_('Set domain strategy for this query. This option is deprecated in sing-box 1.14.0 and ignored when any DNS rule uses IP version or query type, or references a rule set.'));
 		for (let i in hp.dns_strategy)
 			so.value(i, hp.dns_strategy[i]);
 		so.depends('action', 'route');
@@ -1432,6 +1496,7 @@ return view.extend({
 		so.depends({'lan_proxy_mode': 'except_listed', 'homeproxy.config.ipv6_support': '1'});
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_direct_mac_addrs', _('Direct MAC-s'), null, hosts);
+		convertMACRemarks(so);
 		so.depends('lan_proxy_mode', 'except_listed');
 
 		so = fwtool.addIPOption(ss, 'lan_ip_policy', 'lan_proxy_ipv4_ips', _('Proxy IPv4 IP-s'), null, 'ipv4', hosts, true);
@@ -1441,6 +1506,7 @@ return view.extend({
 		so.depends({'lan_proxy_mode': 'listed_only', 'homeproxy.config.ipv6_support': '1'});
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_proxy_mac_addrs', _('Proxy MAC-s'), null, hosts);
+		convertMACRemarks(so);
 		so.depends('lan_proxy_mode', 'listed_only');
 
 		so = fwtool.addIPOption(ss, 'lan_ip_policy', 'lan_gaming_mode_ipv4_ips', _('Gaming mode IPv4 IP-s'), null, 'ipv4', hosts, true);
@@ -1449,6 +1515,7 @@ return view.extend({
 		so.depends('homeproxy.config.ipv6_support', '1');
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_gaming_mode_mac_addrs', _('Gaming mode MAC-s'), null, hosts);
+		convertMACRemarks(so);
 
 		so = fwtool.addIPOption(ss, 'lan_ip_policy', 'lan_global_proxy_ipv4_ips', _('Global proxy IPv4 IP-s'), null, 'ipv4', hosts, true);
 		so.depends({'homeproxy.config.routing_mode': 'custom', '!reverse': true});
@@ -1457,6 +1524,7 @@ return view.extend({
 		so.depends({'homeproxy.config.routing_mode': /^((?!custom).)+$/, 'homeproxy.config.ipv6_support': '1'});
 
 		so = fwtool.addMACOption(ss, 'lan_ip_policy', 'lan_global_proxy_mac_addrs', _('Global proxy MAC-s'), null, hosts);
+		convertMACRemarks(so);
 		so.depends({'homeproxy.config.routing_mode': 'custom', '!reverse': true});
 		/* LAN IP policy end */
 

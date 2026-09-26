@@ -24,11 +24,15 @@ else
 fi
 
 log() {
+	[ "$(uci -q get "$CONF.config.homeproxy_log_enabled")" = "0" ] && return 0
 	echo -e "$(date "+%Y-%m-%d %H:%M:%S") [DAEMON] $*" >> "$LOG_PATH"
 }
 
 start_service() {
 	config_load "$CONF"
+	local log_target="$LOG_PATH" homeproxy_log_enabled
+	config_get_bool homeproxy_log_enabled "config" "homeproxy_log_enabled" "1"
+	[ "$homeproxy_log_enabled" = "1" ] || log_target="/dev/null"
 
 	local routing_mode proxy_mode
 	config_get routing_mode "config" "routing_mode" "bypass_mainland_china"
@@ -52,12 +56,12 @@ start_service() {
 
 	if [ "$outbound_node" != "nil" ]; then
 		# Generate/Validate client config
-		ucode -S "$HP_DIR/scripts/generate_client.uc" 2>>"$LOG_PATH"
+		ucode -S "$HP_DIR/scripts/generate_client.uc" 2>>"$log_target"
 
 		if [ ! -e "$RUN_DIR/sing-box-c.json" ]; then
 			log "Error: failed to generate client configuration."
 			return 1
-		elif ! "$PROG" check --config "$RUN_DIR/sing-box-c.json" 2>>"$LOG_PATH"; then
+		elif ! "$PROG" check --config "$RUN_DIR/sing-box-c.json" 2>>"$log_target"; then
 			log "Error: wrong client configuration detected."
 			return 1
 		fi
@@ -127,19 +131,23 @@ start_service() {
 			fi
 			;;
 		"redirect_tun"|"tun")
-			local tun_name tun_mark
-			config_get tun_name "infra" "tun_name" "singtun0"
-			config_get tun_mark "infra" "tun_mark" "102"
+			local auto_route
+			config_get_bool auto_route "config" "auto_route" "0"
+			if [ "$auto_route" -eq "0" ]; then
+				local tun_name tun_mark
+				config_get tun_name "infra" "tun_name" "singtun0"
+				config_get tun_mark "infra" "tun_mark" "102"
 
-			ip tuntap add mode tun user root name "$tun_name"
-			sleep 1s
-			ip link set "$tun_name" up
+				ip tuntap add mode tun user root name "$tun_name"
+				sleep 1s
+				ip link set "$tun_name" up
 
-			ip route replace default dev "$tun_name" table "$table_mark"
-			ip rule add fwmark "$tun_mark" lookup "$table_mark"
+				ip route replace default dev "$tun_name" table "$table_mark"
+				ip rule add fwmark "$tun_mark" lookup "$table_mark"
 
-			ip -6 route replace default dev "$tun_name" table "$table_mark"
-			ip -6 rule add fwmark "$tun_mark" lookup "$table_mark"
+				ip -6 route replace default dev "$tun_name" table "$table_mark"
+				ip -6 rule add fwmark "$tun_mark" lookup "$table_mark"
+			fi
 			;;
 		esac
 
@@ -177,12 +185,12 @@ start_service() {
 
 	if [ "$server_enabled" = "1" ]; then
 		# Generate/Validate server config
-		ucode -S "$HP_DIR/scripts/generate_server.uc" 2>>"$LOG_PATH"
+		ucode -S "$HP_DIR/scripts/generate_server.uc" 2>>"$log_target"
 
 		if [ ! -e "$RUN_DIR/sing-box-s.json" ]; then
 			log "Error: failed to generate server configuration."
 			return 1
-		elif ! "$PROG" check --config "$RUN_DIR/sing-box-s.json" 2>>"$LOG_PATH"; then
+		elif ! "$PROG" check --config "$RUN_DIR/sing-box-s.json" 2>>"$log_target"; then
 			log "Error: wrong server configuration detected."
 			return 1
 		fi
@@ -260,7 +268,8 @@ stop_service() {
 	# Setup firewall
 	# Load config
 	config_load "$CONF"
-	local table_mark tproxy_mark tun_mark tun_name
+	local auto_route table_mark tproxy_mark tun_mark tun_name
+	config_get_bool auto_route "config" "auto_route" "0"
 	config_get table_mark "infra" "table_mark" "100"
 	config_get tproxy_mark "infra" "tproxy_mark" "101"
 	config_get tun_mark "infra" "tun_mark" "102"
@@ -273,11 +282,13 @@ stop_service() {
 	ip -6 route del local ::/0 dev lo table "$table_mark" 2>"/dev/null"
 
 	# TUN
-	ip route del default dev "$tun_name" table "$table_mark" 2>"/dev/null"
-	ip rule del fwmark "$tun_mark" table "$table_mark" 2>"/dev/null"
+	if [ "$auto_route" -eq "0" ]; then
+		ip route del default dev "$tun_name" table "$table_mark" 2>"/dev/null"
+		ip rule del fwmark "$tun_mark" table "$table_mark" 2>"/dev/null"
 
-	ip -6 route del default dev "$tun_name" table "$table_mark" 2>"/dev/null"
-	ip -6 rule del fwmark "$tun_mark" table "$table_mark" 2>"/dev/null"
+		ip -6 route del default dev "$tun_name" table "$table_mark" 2>"/dev/null"
+		ip -6 rule del fwmark "$tun_mark" table "$table_mark" 2>"/dev/null"
+	fi
 
 	# Nftables rules
 	for i in "homeproxy_dstnat_redir" "homeproxy_output_redir" \
@@ -317,12 +328,15 @@ stop_service() {
 service_stopped() {
 	# Load config
 	config_load "$CONF"
-	local tun_name
+	local auto_route tun_name
+	config_get_bool auto_route "config" "auto_route" "0"
 	config_get tun_name "infra" "tun_name" "singtun0"
 
 	# TUN
-	ip link set "$tun_name" down 2>"/dev/null"
-	ip tuntap del mode tun name "$tun_name" 2>"/dev/null"
+	if [ "$auto_route" -eq "0" ]; then
+		ip link set "$tun_name" down 2>"/dev/null"
+		ip tuntap del mode tun name "$tun_name" 2>"/dev/null"
+	fi
 }
 
 reload_service() {

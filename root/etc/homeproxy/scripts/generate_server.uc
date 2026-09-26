@@ -24,13 +24,14 @@ uci.load(uciconfig);
 const uciserver = 'server';
 
 const log_level = uci.get(uciconfig, uciserver, 'log_level') || 'warn';
+const log_enabled = uci.get(uciconfig, uciserver, 'log_enabled') !== '0';
 /* UCI config end */
 
 const config = {};
 
 /* Log */
 config.log = {
-	disabled: false,
+	disabled: !log_enabled,
 	level: log_level,
 	output: RUN_DIR + '/sing-box-s.log',
 	timestamp: true

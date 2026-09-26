@@ -74,6 +74,9 @@ const sing_features = ubus.call('luci.homeproxy', 'singbox_get_features', {}) ||
 /* Log */
 system(`mkdir -p ${RUN_DIR}`);
 function log(...args) {
+	if (uci.get(uciconfig, ucimain, 'homeproxy_log_enabled') === '0')
+		return;
+
 	const logfile = open(`${RUN_DIR}/homeproxy.log`, 'a');
 	logfile.write(`${getTime()} [SUBSCRIBE] ${join(' ', args)}\n`);
 	logfile.close();
@@ -198,7 +201,7 @@ function parse_uri(uri) {
 		case 'socks':
 		case 'socks4':
 		case 'socks4a':
-		case 'socsk5':
+		case 'socks5':
 		case 'socks5h':
 			url = parseURL('http://' + uri[1]) || {};
 
